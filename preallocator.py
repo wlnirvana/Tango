@@ -73,14 +73,15 @@ class Preallocator:
         if vmName in self.machines.keys():
             self.lock.acquire()
 
-        if not self.machines.get(vmName)[1].empty():
-            vm = self.machines.get(vmName)[1].get_nowait()
+            if not self.machines.get(vmName)[1].empty():
+                vm = self.machines.get(vmName)[1].get_nowait()
 
-        self.lock.release()
+            self.lock.release()
 
-        # If we're not reusing instances, then crank up a replacement
-        if vm and not Config.REUSE_VMS:
-            threading.Thread(target=self.__create(vm, 1)).start()
+        # REUSE_VMS=False case: new VMs are created right before calling
+        # allocVM, so no more need to replace it
+        # if not Config.REUSE_VMS or not vm:
+        #     threading.Thread(target=self.__create(vm, 1)).start()
 
         return vm
 
@@ -108,6 +109,13 @@ class Preallocator:
         """ addVM - add a particular VM instance to the pool
         """
         self.lock.acquire()
+
+        # REUSEV_VMS=False code path does not call Preallcator::update to
+        # create machine, so manually handle it here.
+        if vm.name not in self.machines.keys():
+            self.machines.set(vm.name, [[], TangoQueue(vm.name)])
+            self.log.debug("Creating empty pool of %s instances" % (vm.name))
+
         machine = self.machines.get(vm.name)
         machine[0].append(vm.id)
         self.machines.set(vm.name, machine)
@@ -116,6 +124,9 @@ class Preallocator:
     def removeVM(self, vm):
         """ removeVM - remove a particular VM instance from the pool
         """
+        if vm.name not in self.machines.keys():
+            return
+
         self.lock.acquire()
         machine = self.machines.get(vm.name)
         machine[0].remove(vm.id)

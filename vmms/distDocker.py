@@ -83,10 +83,8 @@ class DistDocker:
         try:
             self.log = logging.getLogger("DistDocker")
             self.hostDNSPoolname=config.Config.HOST_ALIAS
-            self.hostUser = "ubuntu"
-
-            if len(config.Config.DOCKER_HOST_USER) > 0:
-                self.hostUser = config.Config.DOCKER_HOST_USER
+            self.hostUser = config.Config.DOCKER_HOST_USER
+            self.docker = config.Config.DOCKER_HOST_DOCKER_PATH
 
             # Check import docker constants are defined in config
             if len(config.Config.DOCKER_VOLUME_PATH) == 0:
@@ -113,7 +111,7 @@ class DistDocker:
     # VMMS API functions
     #
     def initializeVM(self, vm):
-        """ initializeVM -  Assign a host machine for this container to 
+        """ initializeVM -  Assign a host machine for this container to
         run on.
         """
         return vm
@@ -130,14 +128,13 @@ class DistDocker:
         # Wait for SSH to work before declaring that the VM is ready
         while (True):
             try:
-                addr=socket.gethostbyname(self.hostDNSPoolname)
-                host=socket.gethostbyaddr(addr)[0]
+                vm.ip = socket.gethostbyname(self.hostDNSPoolname)
+                vm.domain_name = self.hostDNSPoolname
             except EnvironmentError:
                 self.log.exception("DNS lookup failed while setting up vm %s." % (vm.name))
                 return -1
 
-            vm.domain_name = host
-            self.log.info("(Re)assigned host %s to VM %s." % (host, vm.name))
+            self.log.info("(Re)assigned host %s to VM %s." % (vm.domain_name, vm.name))
 
             elapsed_secs = time.time() - start_time
 
@@ -153,7 +150,7 @@ class DistDocker:
             ret = timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
                           DistDocker._SSH_AUTH_FLAGS +
                           DistDocker._SSH_MASTER_FLAGS +
-                          ["%s@%s" % (self.hostUser, vm.domain_name),
+                          ["%s@%s" % (self.hostUser, vm.ip),
                            "(:)"], max_secs - elapsed_secs)
             self.log.debug("VM %s: ssh returned with %d" %
                            (vm.domain_name, ret))
@@ -174,14 +171,14 @@ class DistDocker:
         if vm.use_ssh_master:
             ret = timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
                           DistDocker._SSH_MASTER_CHECK_FLAG +
-                          ["%s@%s" % (self.hostUser, vm.domain_name)])
+                          ["%s@%s" % (self.hostUser, vm.ip)])
             if ret != 0:
                 self.log.debug("Lost persistent SSH connection")
                 return ret
 
         # Create a fresh volume
         ret = timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
-                        ["%s@%s" % (self.hostUser, vm.domain_name),
+                        ["%s@%s" % (self.hostUser, vm.ip),
                         "(rm -rf %s; mkdir %s)" % (volumePath, volumePath)],
                         config.Config.COPYIN_TIMEOUT)
         if ret == 0:
@@ -191,9 +188,9 @@ class DistDocker:
         
         for file in inputFiles:
             ret = timeout(["scp"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
-                            [file.localFile] + ["%s@%s:%s/%s" % \
-                            (self.hostUser, vm.domain_name, volumePath, file.destFile)],
-                            config.Config.COPYIN_TIMEOUT)
+                          [file.localFile] + ["%s@%s:%s/%s" % \
+                                              (self.hostUser, vm.ip, volumePath, file.destFile)],
+                          config.Config.COPYIN_TIMEOUT)
             if ret == 0:
                 self.log.debug('Copied in file %s to %s' % 
                     (file.localFile, volumePath + file.destFile))
@@ -218,7 +215,7 @@ class DistDocker:
         if vm.use_ssh_master:
             ret = timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
                           DistDocker._SSH_MASTER_CHECK_FLAG +
-                          ["%s@%s" % (self.hostUser, vm.domain_name)])
+                          ["%s@%s" % (self.hostUser, vm.ip)])
             if ret != 0:
                 self.log.debug("Lost persistent SSH connection")
                 return ret
@@ -234,14 +231,14 @@ class DistDocker:
         setupCmd = 'cp -r mount/* autolab/; su autolab -c "%s"; \
                 cp output/feedback mount/feedback' % autodriverCmd
 
-        args = "(docker run --name %s -v %s:/home/mount %s sh -c '%s')" % \
-                (instanceName, volumePath, vm.image, setupCmd)
+        args = "(%s run --name %s -v %s:/home/mount %s sh -c '%s')" % \
+                (self.docker, instanceName, volumePath, vm.image, setupCmd)
 
         self.log.debug('Running job: %s' % args)
 
         ret = timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
-                        ["%s@%s" % (self.hostUser, vm.domain_name), args],
-                        runTimeout * 2)
+                      ["%s@%s" % (self.hostUser, vm.ip), args],
+                      runTimeout * 2)
 
         self.log.debug('runJob return status %d' % ret)
 
@@ -259,14 +256,14 @@ class DistDocker:
         if vm.use_ssh_master:
             ret = timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
                           DistDocker._SSH_MASTER_CHECK_FLAG +
-                          ["%s@%s" % (self.hostUser, vm.domain_name)])
+                          ["%s@%s" % (self.hostUser, vm.ip)])
             if ret != 0:
                 self.log.debug("Lost persistent SSH connection")
                 return ret
 
         ret = timeout(["scp"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
                       ["%s@%s:%s" % 
-                      (self.hostUser, vm.domain_name, volumePath + 'feedback'), 
+                      (self.hostUser, vm.ip, volumePath + 'feedback'),
                       destFile],
                       config.Config.COPYOUT_TIMEOUT)
         
@@ -283,7 +280,7 @@ class DistDocker:
         if vm.use_ssh_master:
             ret = timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
                           DistDocker._SSH_MASTER_CHECK_FLAG +
-                          ["%s@%s" % (self.hostUser, vm.domain_name)])
+                          ["%s@%s" % (self.hostUser, vm.ip)])
             if ret != 0:
                 self.log.debug("Lost persistent SSH connection")
                 vm.use_ssh_master = False
@@ -292,20 +289,20 @@ class DistDocker:
 
         # Do a hard kill on corresponding docker container.
         # Return status does not matter.
-        args = '(docker rm -f %s)' % (instanceName)
+        args = '(%s rm -f %s)' % (self.docker, instanceName)
         timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
-                ["%s@%s" % (self.hostUser, vm.domain_name), args],
+                ["%s@%s" % (self.hostUser, vm.ip), args],
                 config.Config.DOCKER_RM_TIMEOUT)
         # Destroy corresponding volume if it exists.
         timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
-                ["%s@%s" % (self.hostUser, vm.domain_name),
+                ["%s@%s" % (self.hostUser, vm.ip),
                 "(rm -rf %s)" % (volumePath)],
                 config.Config.DOCKER_RM_TIMEOUT)
         self.log.debug('Deleted volume %s' % instanceName)
         if vm.use_ssh_master:
             timeout(["ssh"] + DistDocker._SSH_FLAGS + vm.ssh_flags +
                     DistDocker._SSH_MASTER_EXIT_FLAG +
-                    ["%s@%s" % (self.hostUser, vm.domain_name)])
+                    ["%s@%s" % (self.hostUser, vm.ip)])
             shutil.rmtree(vm.ssh_control_dir, ignore_errors=True)
         return
 
@@ -373,7 +370,7 @@ class DistDocker:
             o = subprocess.check_output(["ssh"] + DistDocker._SSH_FLAGS +
                                         DistDocker._SSH_AUTH_FLAGS +
                                         ["%s@%s" % (self.hostUser, host),
-                                        "(docker images)"])
+                                        "(%s images)" % (self.docker)])
             o_l = o.split('\n')
             o_l.pop()
             o_l.reverse()

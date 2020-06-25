@@ -1,72 +1,40 @@
 # Start with empty ubuntu machine
 FROM ubuntu:18.04
 
-MAINTAINER Autolab Development Team "autolab-dev@andrew.cmu.edu"
-
 # Setup correct environment variable
 ENV HOME /root
 
-# Change to working directory
-WORKDIR /opt
-
 # Move all code into Tango directory
-ADD . TangoService/Tango/
-WORKDIR /opt/TangoService/Tango
-RUN mkdir -p volumes
+ADD . /opt/TangoService/Tango/
 
-WORKDIR /opt
-
-# To avoid having a prompt on tzdata setup during installation
-ENV DEBIAN_FRONTEND=noninteractive 
-
-# Install dependancies
-RUN apt-get update && apt-get install -y \
-	nginx \
-	curl \
-	git \
-	vim \
-	supervisor \
-	python-pip \
-	python-dev \
-	build-essential \
-	tcl8.5 \
-	wget \
-	libgcrypt11-dev \
-	zlib1g-dev \
-	apt-transport-https \
-	ca-certificates \
-	lxc \
-	iptables \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
-
-# Install Redis
-RUN wget http://download.redis.io/releases/redis-stable.tar.gz && tar xzf redis-stable.tar.gz
-WORKDIR /opt/redis-stable
-RUN make && make install
-WORKDIR /opt/TangoService/Tango/
-
-# Install Docker from Docker Inc. repositories.
-RUN curl -sSL https://get.docker.com/ | sh
-
-# Install the magic wrapper.
-ADD ./wrapdocker /usr/local/bin/wrapdocker
-RUN chmod +x /usr/local/bin/wrapdocker
+RUN cd /opt/TangoService/Tango && \
+        mkdir -p volumes && \
+        apt-get update && \
+        DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        nginx \
+        supervisor \
+        python-pip \
+        python-dev \
+        openssh-client \
+        redis-server && \
+        ln -s /usr/bin/redis-server /usr/local/bin/redis-server && \
+        cd /opt && \
+        cd /opt/TangoService/Tango/ && \
+        cp ./wrapdocker /usr/local/bin/wrapdocker && \
+        cp ./deployment/config/nginx.conf /etc/nginx/nginx.conf && \
+        cp ./deployment/config/supervisord.conf /etc/supervisor/supervisord.conf && \
+        cp ./deployment/config/redis.conf /etc/redis.conf && \
+        chmod +x /usr/local/bin/wrapdocker && \
+        pip install -r requirements.txt && \
+        mkdir -p /var/log/docker /var/log/supervisor && \
+        apt-get autoremove -y && \
+        apt-get clean && \
+        rm -rf "/var/lib/apt/lists/*"
 
 # Define additional metadata for our image.
 VOLUME /var/lib/docker
 
-# Create virtualenv to link dependancies
-RUN pip install virtualenv && virtualenv .
-# Install python dependancies
-RUN pip install -r requirements.txt
-
-RUN mkdir -p /var/log/docker /var/log/supervisor
-
-# Move custom config file to proper location
-RUN cp /opt/TangoService/Tango/deployment/config/nginx.conf /etc/nginx/nginx.conf
-RUN cp /opt/TangoService/Tango/deployment/config/supervisord.conf /etc/supervisor/supervisord.conf
-RUN cp /opt/TangoService/Tango/deployment/config/redis.conf /etc/redis.conf
+WORKDIR /opt/TangoService/Tango/
 
 # Reload new config scripts
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

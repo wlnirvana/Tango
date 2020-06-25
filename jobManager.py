@@ -83,6 +83,8 @@ class JobManager:
                         if Config.REUSE_VMS:
                             preVM = vm
                         else:
+                            # let the preallocator handle different container IDs of the same image
+                            self.preallocator.createVM(job.vm)
                             preVM = self.preallocator.allocVM(job.vm.name)
                         vmms = self.vmms[job.vm.vmms]  # Create new vmms object
 

@@ -292,7 +292,13 @@ class Worker(threading.Thread):
             # Move the job from the live queue to the dead queue
             # with an explanatory message
             msg = "Success: Autodriver returned normally"
-            (returnVM, replaceVM) = (True, False)
+
+            # Return VM to free list if reuse enabled, destroy it otherwise
+            if Config.REUSE_VMS:
+                (returnVM, replaceVM) = (True, False)
+            else:
+                (returnVM, replaceVM) = (False, False)
+
             if ret["copyin"] != 0:
                 msg = "Error: Copy in to VM failed (status=%d)" % (
                     ret["copyin"])
@@ -323,6 +329,14 @@ class Worker(threading.Thread):
             # Update the text that users see in the autograder output file
             self.appendMsg(hdrfile, msg)
             self.catFiles(hdrfile, self.job.outputFile)
+
+            # DistDocker::destoryVM depends on some custom field, but self.job.vm lost this field in appendTrace,
+            # during which the object is reconstructed from memory
+            if self.job.vm.vmms == 'distDocker':
+                self.job.vm.use_ssh_master = vm.use_ssh_master
+                self.job.vm.ssh_flags = vm.ssh_flags
+                self.job.vm.ip = vm.ip
+                self.job.vm.ssh_control_dir = vm.ssh_control_dir
 
             # Thread exit after termination
             self.detachVM(return_vm=returnVM, replace_vm=replaceVM)

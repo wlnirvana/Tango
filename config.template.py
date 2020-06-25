@@ -38,13 +38,7 @@ class Config:
     # VMMS to use. Must be set to a VMMS implemented in vmms/ before
     # starting Tango.  Options are: "localDocker", "distDocker",
     # "tashiSSH", and "ec2SSH"
-    VMMS_NAME = "localDocker"
-
-    # Update this to the 'volumes' directory of your Tango installation if
-    # Docker is being used as the VMMs.
-    # It must be an absolute path with trailing slash, i.e
-    # /opt/TangoService/Tango/volumes/
-    DOCKER_VOLUME_PATH = ""
+    VMMS_NAME = "distDocker"
 
     #####
     # Part 2: Constants that shouldn't need to change very often.
@@ -63,7 +57,7 @@ class Config:
     NUM_THREADS = 20
 
     # We have the option to reuse VMs or discard them after each use
-    REUSE_VMS = True
+    REUSE_VMS = False
 
     # Worker waits this many seconds for functions waitvm, copyin (per
     # file), runjob, and copyout (per file) functions to finish.
@@ -79,7 +73,21 @@ class Config:
     BOOT2DOCKER_ENV_TIMEOUT = 5
     DOCKER_IMAGE_BUILD_TIMEOUT = 300
     DOCKER_RM_TIMEOUT = 5
-    DOCKER_HOST_USER = ''
+
+    # Must be absolute path with trailing slash
+    # Convention is /path/to/Tango/volumes/, default value below is for dockerised deployment
+    DOCKER_VOLUME_PATH = '/home/autograde/docker_volume/'
+
+    # Username for distant docker server with the autograding docker images
+    DOCKER_HOST_USER = 'autograde'
+
+    # Hostname of distant docker server
+    # TODO: use 'host.docker.internal' when docker >20.03.0 is released
+    # See https://github.com/moby/moby/pull/40007#issuecomment-578729356
+    HOST_ALIAS = ''
+
+    # Path to the docker binary on the distant docker server
+    DOCKER_HOST_DOCKER_PATH = '/usr/bin/docker'
 
     # Maximum size for input files in bytes
     MAX_INPUT_FILE_SIZE = 250 * 1024 * 1024 # 250MB
@@ -89,7 +97,7 @@ class Config:
 
     # VM ulimit values
     VM_ULIMIT_FILE_SIZE = 100 * 1024 * 1024
-    VM_ULIMIT_USER_PROC = 100
+    VM_ULIMIT_USER_PROC = 1000
 
     # How many times to reschedule a failed job
     JOB_RETRIES = 2

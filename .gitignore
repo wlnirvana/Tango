@@ -22,3 +22,5 @@ pip-selfcheck.json
 
 # IDEs
 .idea
+
+pyvenv.cfg

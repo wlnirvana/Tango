@@ -24,7 +24,32 @@ A brief overview of the Tango respository:
 * `vmms/` - VMMS library implementations
 * `restful-tango/` - HTTP server layer on the main Tango
 
-Tango was developed as a distributed grading system for [Autolab](https://github.com/autolab/Autolab) at Carnegie Mellon University and has been extensively used for autograding programming assignments in CMU courses. 
+Tango was developed as a distributed grading system for [Autolab](https://github.com/autolab/Autolab) at Carnegie Mellon University and has been extensively used for autograding programming assignments in CMU courses.
+
+## Using Dockerised (distDocker variation) Tango
+
+1. `ssh` into the server host
+2. Pull tango docker image
+3. Pull sample submission and grading image
+4. Set up a dedicated user for autograding
+    + create new user, e.g. `autograde`
+    + add this user to docker group
+    + `ssh-keygen` to generate ssh keys
+    + `ssh-copy-id` to set up password-less access
+    + create a dedicated directory as data channel between tango and graders
+5. Set up config files
+    + `DOCKER_VOLUME_PATH`
+    + `DOCKER_HOST_USER`
+    + `HOST_ALIAS`
+    + `DOCKER_HOST_DOCKER_PATH`
+    + make sure ssh from container to host works
+6. Start the container **with proper volume mapping**
+    + `config.py`
+    + `id_rsa`
+    + command is `docker run -p 8610:8610 -v /path/to/config.py:/opt/TangoService/Tango/config.py -v /path/to/id_rsa:/opt/TangoService/Tango/vmms/id_rsa tango`
+7. Verify the system works. Given sample grading image `gcc` and sample submission, this can be done in one of the following to ways:
+    + Execute a shell into the container, run `python /opt/TangoService/Tango/clients/tango-cli.py -P 8610 -k test -l assessment1 --runJob /path/to/submission --image gcc`
+    + **TODO**: write some `curl` based test to verify the contains works properly
 
 ## Using Tango
 

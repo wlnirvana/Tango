@@ -471,23 +471,6 @@ static void run_job(void) {
     sigaddset(&sigset, SIGCHLD);
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-    // Set ulimits
-    if (args.nproc != 0) {
-        struct rlimit rlimit = {args.nproc, args.nproc};
-        if (setrlimit(RLIMIT_NPROC, &rlimit) < 0) {
-            perror("Error setting process limit");
-            exit(EXIT_OSERROR);
-        }
-    }
-
-    if (args.fsize != 0) {
-        struct rlimit rlimit = {args.fsize, args.fsize};
-        if (setrlimit(RLIMIT_FSIZE, &rlimit) < 0) {
-            ERROR_ERRNO("Error setting filesize limit");
-            exit(EXIT_OSERROR);
-        }
-    }
-
     // Drop permissions
     if (initgroups(args.user_info.pw_name, args.user_info.pw_gid) < 0) {
         ERROR_ERRNO("Error setting supplementary group IDs");
@@ -504,6 +487,23 @@ static void run_job(void) {
             args.user_info.pw_uid) < 0) {
         ERROR_ERRNO("Error setting user ID");
         exit(EXIT_OSERROR);
+    }
+
+    // Set ulimits
+    if (args.nproc != 0) {
+        struct rlimit rlimit = {args.nproc, args.nproc};
+        if (setrlimit(RLIMIT_NPROC, &rlimit) < 0) {
+            perror("Error setting process limit");
+            exit(EXIT_OSERROR);
+        }
+    }
+
+    if (args.fsize != 0) {
+        struct rlimit rlimit = {args.fsize, args.fsize};
+        if (setrlimit(RLIMIT_FSIZE, &rlimit) < 0) {
+            ERROR_ERRNO("Error setting filesize limit");
+            exit(EXIT_OSERROR);
+        }
     }
 
     // Redirect output
