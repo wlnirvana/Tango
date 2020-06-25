@@ -6,9 +6,7 @@ OBJS = autodriver.o
 all: autodriver
 
 autodriver: $(OBJS)
-	$(CC) $(LDFLAGS) -o autodriver $(OBJS)
-	sudo chown root autodriver
-	sudo chmod +s autodriver
+	$(CC) -o autodriver $(OBJS) $(LDFLAGS)
 
 autodriver.o: autodriver.c
 
