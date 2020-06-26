@@ -123,7 +123,7 @@ class LocalDocker:
             self.log.debug('Copied in file %s to %s' % (file.localFile, volumePath + file.destFile))
         return 0
 
-    def runJob(self, vm, runTimeout, maxOutputFileSize):
+    def runJob(self, vm, runTimeout, maxOutputFileSize, job_arg=None):
         """ runJob - Run a docker container by doing the follows:
         - mount directory corresponding to this job to /home/autolab
           in the container
@@ -137,10 +137,15 @@ class LocalDocker:
         args = args + [vm.image]
         args = args + ['sh', '-c']
 
-        autodriverCmd = 'autodriver -u %d -f %d -t %d -o %d autolab &> output/feedback' % \
-                        (config.Config.VM_ULIMIT_USER_PROC, 
+        if job_arg:
+            arg_option = '-a %s' % job_arg
+        else:
+            arg_option = ''
+
+        autodriverCmd = 'autodriver -u %d -f %d -t %d -o %d %s autolab &> output/feedback' % \
+                        (config.Config.VM_ULIMIT_USER_PROC,
                         config.Config.VM_ULIMIT_FILE_SIZE,
-                        runTimeout, config.Config.MAX_OUTPUT_FILE_SIZE)
+                        runTimeout, config.Config.MAX_OUTPUT_FILE_SIZE, arg_option)
 
         args = args + ['cp -r mount/* autolab/; su autolab -c "%s"; \
                         cp output/feedback mount/feedback' % 

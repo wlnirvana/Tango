@@ -50,7 +50,7 @@ parser.add_argument(
     '--numJobs', type=int, default=1, help='Number of jobs to run')
 
 parser.add_argument('--vmms', default='localDocker',
-                    help='Choose vmms between ec2SSH, tashiSSH, localDocker, and distDocker')
+                    help='Choose vmms between ec2SSH, localDocker, and distDocker')
 parser.add_argument('--image', default='',
                     help='VM image name (default "autograding_image")')
 parser.add_argument(

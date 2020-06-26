@@ -332,19 +332,26 @@ class Ec2SSH:
 
         return 0
 
-    def runJob(self, vm, runTimeout, maxOutputFileSize):
+    def runJob(self, vm, runTimeout, maxOutputFileSize, job_arg=None):
         """ runJob - Run the make command on a VM using SSH and
         redirect output to file "output".
         """
         domain_name = self.domainName(vm)
         self.log.debug("runJob: Running job on VM %s" %
                        self.instanceName(vm.id, vm.name))
+
+        if job_arg:
+            arg_option = '-a %s' % job_arg
+        else:
+            arg_option = ''
+
         # Setting ulimits for VM and running job
         runcmd = "/usr/bin/time --output=time.out autodriver -u %d -f %d -t \
-                %d -o %d autolab &> output" % (config.Config.VM_ULIMIT_USER_PROC,
+                %d -o %d %s autolab &> output" % (config.Config.VM_ULIMIT_USER_PROC,
                                                config.Config.VM_ULIMIT_FILE_SIZE,
                                                runTimeout,
-                                               maxOutputFileSize)
+                                               maxOutputFileSize,
+                                               arg_option)
         ret = timeout(["ssh"] + self.ssh_flags +
                        ["%s@%s" % (config.Config.EC2_USER_NAME, domain_name), runcmd], runTimeout * 2)
         return ret

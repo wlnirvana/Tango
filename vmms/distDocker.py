@@ -202,7 +202,7 @@ class DistDocker:
 
         return 0
 
-    def runJob(self, vm, runTimeout, maxOutputFileSize):
+    def runJob(self, vm, runTimeout, maxOutputFileSize, job_arg=None):
         """ runJob - Run a docker container by doing the follows:
         - mount directory corresponding to this job to /home/autolab
           in the container
@@ -220,10 +220,15 @@ class DistDocker:
                 self.log.debug("Lost persistent SSH connection")
                 return ret
 
-        autodriverCmd = 'autodriver -u %d -f %d -t %d -o %d autolab &> output/feedback' % \
+        if job_arg:
+            arg_option = '-a %s' % job_arg
+        else:
+            arg_option = ''
+
+        autodriverCmd = 'autodriver -u %d -f %d -t %d -o %d %s autolab &> output/feedback' % \
                         (config.Config.VM_ULIMIT_USER_PROC, 
                         config.Config.VM_ULIMIT_FILE_SIZE,
-                        runTimeout, config.Config.MAX_OUTPUT_FILE_SIZE)
+                        runTimeout, config.Config.MAX_OUTPUT_FILE_SIZE, arg_option)
 
         # IMPORTANT: The single and double quotes are important, since we
         #            are switching to the autolab user and then running
