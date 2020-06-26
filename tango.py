@@ -54,10 +54,7 @@ class TangoServer:
         self.daemon = True
         
         vmms = None
-        if Config.VMMS_NAME == "tashiSSH":
-            from vmms.tashiSSH import TashiSSH
-            vmms = TashiSSH()
-        elif Config.VMMS_NAME == "ec2SSH":
+        if Config.VMMS_NAME == "ec2SSH":
             from vmms.ec2SSH import Ec2SSH
             vmms = Ec2SSH()
         elif Config.VMMS_NAME == "localDocker":

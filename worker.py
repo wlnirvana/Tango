@@ -260,7 +260,7 @@ class Worker(threading.Thread):
 
             # Run the job on the virtual machine
             ret["runjob"] = self.vmms.runJob(
-                vm, self.job.timeout, self.job.maxOutputFileSize)
+                vm, self.job.timeout, self.job.maxOutputFileSize, self.job.arg)
             if ret["runjob"] != 0:
                 Config.runjob_errors += 1
                 if ret["runjob"] == -1:

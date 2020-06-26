@@ -163,6 +163,9 @@ class TangoREST:
             accessKeyId = jobObj["accessKeyId"]
             accessKey = jobObj["accessKey"]
 
+        # argument of job from rest request
+        arg = jobObj.get('arg', None)
+
         job = TangoJob(
             name=name,
             vm=vm,
@@ -172,7 +175,8 @@ class TangoREST:
             notifyURL=notifyURL,
             maxOutputFileSize=maxOutputFileSize,
             accessKey=accessKey,
-            accessKeyId=accessKeyId
+            accessKeyId=accessKeyId,
+            arg=arg
         )
 
         self.log.debug("inputFiles: %s" % [file.localFile for file in input])

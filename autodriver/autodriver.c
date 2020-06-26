@@ -82,6 +82,7 @@ struct arguments {
     struct passwd user_info;
     char *passwd_buf;
     char *directory;
+    char *job_arg;
 } args;
 
 /**
@@ -238,6 +239,12 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         if (parse_uint(arg, &arguments->osize) < 0) {
             argp_failure(state, EXIT_USAGE, 0, 
                 "The argument to osize must be a nonnegative integer");
+        }
+        break;
+    case 'a':
+        arguments->job_arg = strdup(arg);
+        if (arguments->job_arg == NULL) {
+            argp_error(state, "strdup error");
         }
         break;
     case ARGP_KEY_ARG:
@@ -536,7 +543,17 @@ static void run_job(void) {
     }
 
     // Finally exec job
-    execl("/usr/bin/make", "make", NULL);
+    if (args.job_arg == NULL) {
+        execl("/usr/bin/make", "make", NULL);
+    } else {
+        // If an arg is passed in from the -a option, pass it further to the
+        // make command like `make ... ARG=passed_in`
+        char* job_arg = malloc(4 + strlen(args.job_arg) + 1);
+        strcpy(job_arg, "ARG=");
+        strcat(job_arg, args.job_arg);
+        execl("/usr/bin/make", "make", job_arg, NULL);
+    }
+
     ERROR_ERRNO("Error executing make");
     exit(EXIT_OSERROR);
 }
@@ -547,6 +564,7 @@ int main(int argc, char **argv) {
     args.fsize = 0;
     args.timeout = 0;
     args.osize = 0;
+    args.job_arg = NULL;
 
     // Make sure this isn't being run as root
     if (getuid() == 0) {
@@ -573,6 +591,8 @@ int main(int argc, char **argv) {
             "Limit the amount of time a job is allowed to run (seconds)", 0},
         {"osize", 'o', "size", 0,
             "Limit the amount of output returned (bytes)", 0},
+        {"arg", 'a', "job_arg", 0,
+            "Argument for this job, if any", 0},
         {0, 0, 0, 0, 0, 0}
     };
 
