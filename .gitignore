@@ -24,3 +24,7 @@ pip-selfcheck.json
 .idea
 
 pyvenv.cfg
+.vscode
+
+# Backup files
+*.bak
