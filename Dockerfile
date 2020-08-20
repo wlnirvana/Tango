@@ -13,8 +13,8 @@ RUN cd /opt/TangoService/Tango && \
         DEBIAN_FRONTEND=noninteractive apt-get install -y \
         nginx \
         supervisor \
-        python-pip \
-        python-dev \
+        python3-pip \
+        python3-dev \
         openssh-client \
         redis-server && \
         ln -s /usr/bin/redis-server /usr/local/bin/redis-server && \
@@ -25,7 +25,7 @@ RUN cd /opt/TangoService/Tango && \
         cp ./deployment/config/supervisord.conf /etc/supervisor/supervisord.conf && \
         cp ./deployment/config/redis.conf /etc/redis.conf && \
         chmod +x /usr/local/bin/wrapdocker && \
-        pip install -r requirements.txt && \
+        pip3 install -r requirements.txt && \
         mkdir -p /var/log/docker /var/log/supervisor && \
         apt-get autoremove -y && \
         apt-get clean && \
